@@ -64,12 +64,12 @@ class ErgParser :
             strm.write( '%s\n' % MiniDom.parseString( XmlDoc.tostring( self.rootNode, 'utf-8')
                                    ).toprettyxml(indent="    ") )
             strm.close()
-        except Exception, err :
+        except Exception as err :
             raise Exception( "Error writing output file %s : " % ( outputFile, err ) )
-        
+
     def parser( self ) :
         return self.parsers[-1]
-    
+
     def startOfSection( self, line ) :
         match = self.sectionStartRe.match( line )
         if match :
@@ -130,8 +130,9 @@ class ErgParser :
             elif len( tokens ) == 2 :
                 try :
                     self.addNode( headerTokens[ tokens[0].strip() ], tokens[1] )
-                except Exception, err :
-                    print "Muuuh : %s" % err
+                except Exception as err :
+                    print("Muuuh : {0}".format(str(err)))
+                    #print "Muuuh : %s" % err
                     pass
 
     #-----------------------------
@@ -144,7 +145,7 @@ class ErgParser :
     def dataEnd( self ) :
         if self.data :
             numPoints = len( self.data )
-            print "Data points : %d" % numPoints
+            print("Data points : %d" % numPoints)
 
             # numPoints == 1 is a special case (time datum must be non-negative)
             # Deal with that later,
@@ -152,23 +153,23 @@ class ErgParser :
             for currTime, currEffort in self.data[1:] :
                 duration = currTime - prevTime
                 deltaEffort = currEffort - prevEffort
-                print "Duration = %.3f, start = %.3f, end = %.3f (D = %.3f)" % (
-                    duration, prevEffort, currEffort, deltaEffort )
+                print("Duration = %.3f, start = %.3f, end = %.3f (D = %.3f)" % (
+                    duration, prevEffort, currEffort, deltaEffort ))
 
-            
+
                 if duration :
                     # Increasing effort is 'Warmup' in Zwift parlance, decreasing effort
                     # is 'Cooldown' and no change is 'SteadyState' (note case).
                     intervalType = 'SteadyState'
                     if   deltaEffort > 0 : intervalType = 'Warmup'
                     elif deltaEffort < 0 : intervalType = 'Cooldown'
-                    
+
                     interval = self.addInterval( intervalType, duration, prevEffort, currEffort )
-                
+
                 # .. and around we go again
                 prevTime = currTime
                 prevEffort = currEffort
-                
+
         del self.data
 
     def dataParse( self, line ) :
@@ -186,20 +187,20 @@ class ErgParser :
     def textStart( self ) : pass
     def textEnd( self ) : pass
     def textParse( self, line ) :
-        print '%s' % line
+        print('%s' % line)
 
-        
+
     def parse( self, path ) :
         try :
             for line in open( path ) :
-                print "Parser '%s', line : %s" % ( self.parser(), line )
+                print("Parser '%s', line : %s" % ( self.parser(), line ))
                 self.parser()( line )
 
-        except Exception, err :
-            print 'Muuuh : %s' % err
+        except Exception as err :
+            print('Muuuh : %s' % err)
         finally :
             self.write()
-                
+
 #---------------------------------------------------------
 # Mainline - options parsing and drivers
 #---------------------------------------------------------
@@ -207,7 +208,7 @@ if __name__ == '__main__' :
     import getopt
 
     def printUsage() :
-        print """
+        print("""
         zerg [options] file1.mrc [file2.mrc ...]
 
         Convert one or more ERG/MRC files to Zwift Workout (zwo) files.
@@ -234,8 +235,8 @@ if __name__ == '__main__' :
                   converted data file name is different from the
                   original data file name currently - beware.
 
-        """
-        
+        """)
+
 
     optFileType = None
     optFileOutput = None
@@ -245,19 +246,19 @@ if __name__ == '__main__' :
         'erg' : ( 'ERG file', 'WATTS' ) ,
         'mrc' : ( 'MRC file', 'PERCENT' )
         }
-    
+
     try :
         opts, files = getopt.getopt( sys.argv[1:], "D:ho:t:" )
 
-    except getopt.GetoptError, msg :
-        print "Invalid option(s) : %s" % msg
+    except getopt.GetoptError as msg :
+        print("Invalid option(s) : %s" % msg)
         printUsage()
         sys.exit( 1 )
 
-    except Exception, err :
-        print "Internal error, exiting : %s" % err
+    except Exception as err :
+        print("Internal error, exiting : %s" % err)
         sys.exit( 2 )
-    
+
     else :
         for opt, val in opts :
             if opt == '-D' :
@@ -270,19 +271,13 @@ if __name__ == '__main__' :
             elif opt == '-t' :
                 try :
                     desc, _ = fileTypes[ val ]
-                    print "Forcing file type to '%s' (%s)" % ( val, desc )
+                    print("Forcing file type to '%s' (%s)" % ( val, desc ))
                     optFileType = val
                 except :
-                    print "Invalid file type '%s', should be one of %s" % (
-                        val, ', '.join( fileTypes.keys() ) )
+                    print("Invalid file type '%s', should be one of %s" % (
+                        val, ', '.join( fileTypes.keys() ) ))
                     sys.exit( 3 )
 
         for path in files :
             ErgParser( path,
                        fileType = optFileType, fileOutput = optFileOutput, outputDir = optOutputDir )
-
-
-                
-
-
-
