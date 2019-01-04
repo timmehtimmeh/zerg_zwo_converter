@@ -33,6 +33,7 @@ import xml.etree.ElementTree as XmlDoc
 import xml.dom.minidom as MiniDom
 
 class ErgParser :
+    # sectionStartRe = re.compile( '\[(?P<tag>.*?)\]' )
     sectionStartRe = re.compile( '[[](?P<tag>[^]]+)[]].*' )
     sectionEndRe = re.compile( '[[]END (?P<tag>[^]]+)[]].*' )
 
@@ -129,10 +130,12 @@ class ErgParser :
                 pass
             elif len( tokens ) == 2 :
                 try :
-                    self.addNode( headerTokens[ tokens[0].strip() ], tokens[1] )
+                    # Use filename as Zwift name if input is 'none'
+                    if tokens[0].strip() == 'FILE NAME' and tokens[1].strip() == 'none':
+                        tokens[1] = os.path.splitext(os.path.basename(self.input))[0]
+                    self.addNode( headerTokens[ tokens[0].strip() ], tokens[1].strip() )
                 except Exception as err :
                     print("Muuuh : {0}".format(str(err)))
-                    #print "Muuuh : %s" % err
                     pass
 
     #-----------------------------
