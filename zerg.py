@@ -264,11 +264,6 @@ if __name__ == '__main__' :
                   converted data file name is different from the
                   original data file name currently - beware.
 
-        -t <type> Force file type of input files. <Type> can be one of:
-        
-                     - erg - ERG file. Intervals defined by Watts
-                     - mrc - MRC file. Intervals defined by % of FTP.
-
         -m        Skip Course Text conversion.
 
         """)
