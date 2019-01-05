@@ -112,6 +112,20 @@ class ErgParser :
         node.text = value
         return node
 
+    def addText( self, interval, timeOffset, message):
+        # Iterate through all nodes in workout and add text when needed
+        periodStart = 0.0
+        periodEnd = 0.0
+        for child in self.rootNode.find('workout'):
+            periodEnd += float(child.attrib['Duration'])
+
+            if (interval >= periodStart) & (interval < periodEnd):
+                XmlDoc.SubElement( child, 'textevent', message = message, timeoffset = "%f" % timeOffset )
+                break
+
+            periodStart = periodEnd
+        pass
+
     #-----------------------------
     # Course Header
     #-----------------------------
@@ -190,7 +204,17 @@ class ErgParser :
     def textStart( self ) : pass
     def textEnd( self ) : pass
     def textParse( self, line ) :
-        print('%s' % line)
+        # print('%s' % line)
+        if not self.endOfSection( line ) :
+            tokens = re.split(r'\t+', line.rstrip())
+            if len (tokens) == 8 :
+                interval = float(tokens[0])
+                message = tokens[1]
+                timeOffset = float(tokens[7])
+                # print('%s (at %s + %s)' % (message, interval, timeOffset))
+
+            self.addText(interval, timeOffset, message)
+        pass
 
 
     def parse( self, path ) :
