@@ -37,13 +37,14 @@ class ErgParser :
     sectionStartRe = re.compile( '[[](?P<tag>[^]]+)[]].*' )
     sectionEndRe = re.compile( '[[]END (?P<tag>[^]]+)[]].*' )
 
-    def __init__( self, path, fileOutput = None, fileType = None, outputDir = None ) :
+    def __init__( self, path, fileOutput = None, fileType = None, outputDir = None, skipCourseText = None ) :
         self.fileType = fileType
         self.input = path
         self.output = fileOutput
         self.outputDir = outputDir
         self.rootNode = XmlDoc.Element( 'workout_file' )
         self.currentNode = self.rootNode
+        self.skipCourseText = skipCourseText
 
         self.sectionTokens = {
             'COURSE HEADER' : ( self.headerStart, self.headerParse, self.headerEnd ) ,
@@ -206,14 +207,15 @@ class ErgParser :
     def textParse( self, line ) :
         # print('%s' % line)
         if not self.endOfSection( line ) :
-            tokens = re.split(r'\t+', line.rstrip())
-            if len (tokens) == 8 :
-                interval = float(tokens[0])
-                message = tokens[1]
-                timeOffset = float(tokens[7])
-                # print('%s (at %s + %s)' % (message, interval, timeOffset))
+            if not self.skipCourseText :
+                tokens = re.split(r'\t+', line.rstrip())
+                if len (tokens) == 8 :
+                    interval = float(tokens[0])
+                    message = tokens[1]
+                    timeOffset = float(tokens[7])
+                    # print('%s (at %s + %s)' % (message, interval, timeOffset))
 
-            self.addText(interval, timeOffset, message)
+                    self.addText(interval, timeOffset, message)
         pass
 
 
@@ -262,12 +264,20 @@ if __name__ == '__main__' :
                   converted data file name is different from the
                   original data file name currently - beware.
 
+        -t <type> Force file type of input files. <Type> can be one of:
+        
+                     - erg - ERG file. Intervals defined by Watts
+                     - mrc - MRC file. Intervals defined by % of FTP.
+
+        -m        Skip Course Text conversion.
+
         """)
 
 
     optFileType = None
     optFileOutput = None
     optOutputDir = None
+    optSkipCourseText = None
 
     fileTypes = {
         'erg' : ( 'ERG file', 'WATTS' ) ,
@@ -275,7 +285,7 @@ if __name__ == '__main__' :
         }
 
     try :
-        opts, files = getopt.getopt( sys.argv[1:], "D:ho:t:" )
+        opts, files = getopt.getopt( sys.argv[1:], "D:ho:t:m" )
 
     except getopt.GetoptError as msg :
         print("Invalid option(s) : %s" % msg)
@@ -304,7 +314,9 @@ if __name__ == '__main__' :
                     print("Invalid file type '%s', should be one of %s" % (
                         val, ', '.join( fileTypes.keys() ) ))
                     sys.exit( 3 )
+            elif opt == "-m" :
+                optSkipCourseText = True
 
         for path in files :
             ErgParser( path,
-                       fileType = optFileType, fileOutput = optFileOutput, outputDir = optOutputDir )
+                       fileType = optFileType, fileOutput = optFileOutput, outputDir = optOutputDir, skipCourseText =  optSkipCourseText)
