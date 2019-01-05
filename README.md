@@ -33,6 +33,14 @@ ERG/MRC to Zwift Workout File, based on code posted to this blog https://fukawit
         -m        Skip Course Text conversion.
 ```
 
+For example:
+
+```
+python zerg.py path/to/workout.mrc
+```
+
+See also http://kb.zwiftriders.com/convert-sufferfest-to-Zwift
+
 # ZWO Tag Syntax Documentation
 In an effort to better understand the format that is needed for Zwift to correctly accept the files this script creates, here is some reverse engineered documentation.
 

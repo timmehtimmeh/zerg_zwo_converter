@@ -283,7 +283,7 @@ if __name__ == '__main__' :
         opts, files = getopt.getopt( sys.argv[1:], "D:ho:t:m" )
 
     except getopt.GetoptError as msg :
-        print("Invalid option(s) : %s" % msg)
+        print("Invalid option(s) : %s" % msg)   
         printUsage()
         sys.exit( 1 )
 
