@@ -33,16 +33,18 @@ import xml.etree.ElementTree as XmlDoc
 import xml.dom.minidom as MiniDom
 
 class ErgParser :
+    # sectionStartRe = re.compile( '\[(?P<tag>.*?)\]' )
     sectionStartRe = re.compile( '[[](?P<tag>[^]]+)[]].*' )
     sectionEndRe = re.compile( '[[]END (?P<tag>[^]]+)[]].*' )
 
-    def __init__( self, path, fileOutput = None, fileType = None, outputDir = None ) :
+    def __init__( self, path, fileOutput = None, fileType = None, outputDir = None, skipCourseText = None ) :
         self.fileType = fileType
         self.input = path
         self.output = fileOutput
         self.outputDir = outputDir
         self.rootNode = XmlDoc.Element( 'workout_file' )
         self.currentNode = self.rootNode
+        self.skipCourseText = skipCourseText
 
         self.sectionTokens = {
             'COURSE HEADER' : ( self.headerStart, self.headerParse, self.headerEnd ) ,
@@ -111,6 +113,20 @@ class ErgParser :
         node.text = value
         return node
 
+    def addText( self, interval, timeOffset, message):
+        # Iterate through all nodes in workout and add text when needed
+        periodStart = 0.0
+        periodEnd = 0.0
+        for child in self.rootNode.find('workout'):
+            periodEnd += float(child.attrib['Duration'])
+
+            if (interval >= periodStart) & (interval < periodEnd):
+                XmlDoc.SubElement( child, 'textevent', message = message, timeoffset = "%f" % timeOffset )
+                break
+
+            periodStart = periodEnd
+        pass
+
     #-----------------------------
     # Course Header
     #-----------------------------
@@ -129,10 +145,12 @@ class ErgParser :
                 pass
             elif len( tokens ) == 2 :
                 try :
-                    self.addNode( headerTokens[ tokens[0].strip() ], tokens[1] )
+                    # Use filename as Zwift name if input is 'none'
+                    if tokens[0].strip() == 'FILE NAME' and tokens[1].strip() == 'none':
+                        tokens[1] = os.path.splitext(os.path.basename(self.input))[0]
+                    self.addNode( headerTokens[ tokens[0].strip() ], tokens[1].strip() )
                 except Exception as err :
                     print("Muuuh : {0}".format(str(err)))
-                    #print "Muuuh : %s" % err
                     pass
 
     #-----------------------------
@@ -187,7 +205,18 @@ class ErgParser :
     def textStart( self ) : pass
     def textEnd( self ) : pass
     def textParse( self, line ) :
-        print('%s' % line)
+        # print('%s' % line)
+        if not self.endOfSection( line ) :
+            if not self.skipCourseText :
+                tokens = re.split(r'\t+', line.rstrip())
+                if len (tokens) == 8 :
+                    interval = float(tokens[0])
+                    message = tokens[1]
+                    timeOffset = float(tokens[7])
+                    # print('%s (at %s + %s)' % (message, interval, timeOffset))
+
+                    self.addText(interval, timeOffset, message)
+        pass
 
 
     def parse( self, path ) :
@@ -235,12 +264,15 @@ if __name__ == '__main__' :
                   converted data file name is different from the
                   original data file name currently - beware.
 
+        -m        Skip Course Text conversion.
+
         """)
 
 
     optFileType = None
     optFileOutput = None
     optOutputDir = None
+    optSkipCourseText = None
 
     fileTypes = {
         'erg' : ( 'ERG file', 'WATTS' ) ,
@@ -248,7 +280,7 @@ if __name__ == '__main__' :
         }
 
     try :
-        opts, files = getopt.getopt( sys.argv[1:], "D:ho:t:" )
+        opts, files = getopt.getopt( sys.argv[1:], "D:ho:t:m" )
 
     except getopt.GetoptError as msg :
         print("Invalid option(s) : %s" % msg)
@@ -277,7 +309,9 @@ if __name__ == '__main__' :
                     print("Invalid file type '%s', should be one of %s" % (
                         val, ', '.join( fileTypes.keys() ) ))
                     sys.exit( 3 )
+            elif opt == "-m" :
+                optSkipCourseText = True
 
         for path in files :
             ErgParser( path,
-                       fileType = optFileType, fileOutput = optFileOutput, outputDir = optOutputDir )
+                       fileType = optFileType, fileOutput = optFileOutput, outputDir = optOutputDir, skipCourseText =  optSkipCourseText)
